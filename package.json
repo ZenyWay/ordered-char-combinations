@@ -1,0 +1,80 @@
+{
+  "name": "ordered-char-combinations",
+  "version": "1.0.0",
+  "description": "iterable over ordered character combinations from a list of alphabets",
+  "main": "dist",
+  "browser": "dist/bundle.js",
+  "scripts": {
+    "predist": "mkdirp dist && rimraf dist/*",
+    "dist": "tsc -p src --outDir dist",
+    "example": "npm run example:bundle && npm run example:serve",
+    "example:serve": "http-server -c-1 -i -e html -o -p 6510 spec/example",
+    "preexample:bundle": "rimraf spec/example/*.js",
+    "example:bundle": "browserify spec/example/index.ts -p [ tsify --project spec/example ] --exclude 'tslib' --exclude debug --exclude 'immutable' -t uglifyify -o spec/example/index.js",
+    "prepublish": "npm run dist",
+    "pretest": "mkdirp spec/reports && rimraf spec/reports/*",
+    "test": "karma start spec/karma.conf.js --single-run",
+    "test:debug": "karma start spec/karma.conf.js --no-single-run",
+    "test:coverage": "npm run pretest && karma start spec/karma-coverage.conf.js --single-run && remap-istanbul -i spec/reports/coverage/chrom*/coverage.json -o spec/reports/coverage -t html && http-server -c-1 -o -p 8888 spec/reports/coverage",
+    "pretest:ci": "mkdirp spec/reports/coverage && rimraf spec/reports/coverage",
+    "test:ci:coveralls": "cat spec/reports/coverage/lcov.info | sed -e 's/SF:\\.\\.\\//SF:/' | coveralls",
+    "test:ci": "karma start spec/karma-coverage.conf.js --single-run && remap-istanbul -i spec/reports/coverage/chrom*/coverage.json -o spec/reports/coverage/lcov.info -t lcovonly",
+    "test:web:serve": "http-server -c-1 -o -p 6510 spec/web",
+    "pretest:web": "rimraf spec/web/*.js",
+    "test:web": "browserify spec/*.spec.ts -p [ tsify --project spec ] --exclude 'tslib' -o spec/web/index.spec.js && npm run test:web:serve"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zenyway/ordered-char-combinations.git"
+  },
+  "keywords": [
+    "iterable",
+    "iterator",
+    "combinations",
+    "order",
+    "alphabets"
+  ],
+  "author": {
+    "name": "Stephane M. Catala",
+    "email": "stephane@zenyway.com"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/zenyway/ordered-char-combinations/issues"
+  },
+  "homepage": "https://github.com/zenyway/ordered-char-combinations#readme",
+  "dependencies": {
+    "@types/debug": "0.0.29",
+    "debug": "^2.4.5",
+    "tslib": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^2.5.38",
+    "browserify": "^13.1.1",
+    "browserify-istanbul": "^2.0.0",
+    "coveralls": "^2.11.15",
+    "cpx": "^1.5.0",
+    "eslint": "^3.12.2",
+    "http-server": "^0.9.0",
+    "immutable": "^3.8.1",
+    "istanbul": "^0.4.5",
+    "jasmine-core": "^2.5.2",
+    "karma": "^1.3.0",
+    "karma-browserify": "^5.1.0",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-coverage": "^1.1.1",
+    "karma-firefox-launcher": "^1.0.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-jasmine-html-reporter": "^0.2.2",
+    "karma-junit-reporter": "^1.2.0",
+    "karma-safari-launcher": "^1.0.0",
+    "karma-spec-reporter": "0.0.26",
+    "mkdirp": "^0.5.1",
+    "remap-istanbul": "^0.8.2",
+    "rimraf": "^2.5.4",
+    "tsify": "^2.0.7",
+    "typescript": "^2.1.4",
+    "uglifyify": "^3.0.4",
+    "watchify": "^3.8.0"
+  }
+}
