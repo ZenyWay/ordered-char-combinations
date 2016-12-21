@@ -111,7 +111,7 @@ describe('OderedCharCombinations', function () {
             it('returns IteratorResult instances of the ordered string combinations ' +
                 'of all characters from all alphabet strings concatenated ' +
                 'from the first to the last alphabet string, ' +
-                'followed by an iteration termination object', function () {
+                'followed by a termination IteratorResult instance', function () {
                 expect(result.value).toEqual(combinations);
                 expect(result.error).toBeUndefined();
             });
@@ -184,7 +184,7 @@ describe('OderedCharCombinations', function () {
                     result.error = err;
                 }
             });
-            it('returns the current value of the OrderedCharCombinations', function () {
+            it('returns `false`', function () {
                 expect(result.value).toBe(false);
                 expect(result.error).toBeUndefined();
             });
