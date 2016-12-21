@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "iterable over ordered character combinations from a list of alphabets",
   "main": "dist",
-  "browser": "dist/bundle.js",
   "scripts": {
     "predist": "mkdirp dist && rimraf dist/*",
     "dist": "tsc -p src --outDir dist",
