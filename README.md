@@ -7,7 +7,7 @@
 iterable over ordered character combinations from a list of alphabets.
 
 # <a name="example"></a> example
-a live version of this example can be viewed [here](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.0.0/spec/example/index.html)
+a live version of this example can be viewed [here](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.0.1/spec/example/index.html)
 in the browser console,
 or by cloning this repository and running the following commands from a terminal:
 ```bash
@@ -32,7 +32,7 @@ log('subset:', subset) // ['bC0', 'bC1', 'bC2', 'cA0', 'cA1']
 Coded in `Typescript 2`.
 
 for a detailed specification of the API,
-run the [unit tests](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.0.0/spec/web/index.html)
+run the [unit tests](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.0.1/spec/web/index.html)
 in your browser.
 
 # <a name="contributing"></a> CONTRIBUTING
