@@ -27,7 +27,7 @@ const subset = strings.skip(15).take(5).toArray()
 log('subset:', subset) // ['bC0', 'bC1', 'bC2', 'cA0', 'cA1']
 ```
 
-# <a name="api"></a> API v0.0.1 experimental
+# <a name="api"></a> API v1.0.0 stable
 `ES5` and [`Typescript`](http://www.typescriptlang.org/) compatible.
 Coded in `Typescript 2`.
 
