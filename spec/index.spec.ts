@@ -29,6 +29,7 @@ const ORDERED_CHAR_COMBINATIONS = jasmine.objectContaining({
   next: jasmine.any(Function),
   get: jasmine.any(Function),
   has: jasmine.any(Function),
+  index: jasmine.any(Number),
   size: jasmine.any(Number)
 })
 
@@ -110,7 +111,7 @@ describe('OderedCharCombinations', () => {
     })
   })
 
-  describe('next()', () => {
+  describe('next(): IteratorResult<string>', () => {
     describe('when called until and past the last element', () => {
       let combinations: any
       beforeEach(() => {
@@ -127,11 +128,82 @@ describe('OderedCharCombinations', () => {
           result.error = err
         }
       })
-      it('returns iterator result objects of the ordered string combinations ' +
+      it('returns IteratorResult instances of the ordered string combinations ' +
       'of all characters from all alphabet strings concatenated ' +
       'from the first to the last alphabet string, ' +
       'followed by an iteration termination object', () => {
         expect(result.value).toEqual(combinations)
+        expect(result.error).toBeUndefined()
+      })
+    })
+  })
+
+  describe('get (): string', () => {
+    let strings: any
+    beforeEach(() => {
+      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
+    })
+    describe('when called before any calls to next()', () => {
+      beforeEach(() => {
+        try {
+          result.value = strings.get()
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('returns `undefined`', () => {
+        expect(result.value).toBe(undefined)
+        expect(result.error).toBeUndefined()
+      })
+    })
+    describe('when called after any calls to next()', () => {
+      beforeEach(() => {
+        try {
+          strings.next()
+          strings.next()
+          result.value = strings.get()
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('returns the current value of the OrderedCharCombinations',() => {
+        expect(result.value).toBe('adh')
+        expect(result.error).toBeUndefined()
+      })
+    })
+  })
+
+  describe('has (): boolean', () => {
+    let strings: any
+    beforeEach(() => {
+      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
+    })
+    describe('when called before the last element', () => {
+      beforeEach(() => {
+        try {
+          result.value = Array.from(strings).slice(0, -1)
+          .every(string => strings.next() && strings.has())
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('returns `true`', () => {
+        expect(result.value).toBe(true)
+        expect(result.error).toBeUndefined()
+      })
+    })
+    describe('when called after iterating through all elements', () => {
+      beforeEach(() => {
+        try {
+          Array.from(strings)
+          .forEach(string => strings.next())
+          result.value = strings.has()
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('returns the current value of the OrderedCharCombinations',() => {
+        expect(result.value).toBe(false)
         expect(result.error).toBeUndefined()
       })
     })

@@ -10,6 +10,7 @@ var ORDERED_CHAR_COMBINATIONS = jasmine.objectContaining((_a = {},
     _a.next = jasmine.any(Function),
     _a.get = jasmine.any(Function),
     _a.has = jasmine.any(Function),
+    _a.index = jasmine.any(Number),
     _a.size = jasmine.any(Number),
     _a));
 beforeEach(function () {
@@ -89,7 +90,7 @@ describe('OderedCharCombinations', function () {
             expect(result.error).toBeUndefined();
         });
     });
-    describe('next()', function () {
+    describe('next(): IteratorResult<string>', function () {
         describe('when called until and past the last element', function () {
             var combinations;
             beforeEach(function () {
@@ -107,11 +108,84 @@ describe('OderedCharCombinations', function () {
                     result.error = err;
                 }
             });
-            it('returns iterator result objects of the ordered string combinations ' +
+            it('returns IteratorResult instances of the ordered string combinations ' +
                 'of all characters from all alphabet strings concatenated ' +
                 'from the first to the last alphabet string, ' +
                 'followed by an iteration termination object', function () {
                 expect(result.value).toEqual(combinations);
+                expect(result.error).toBeUndefined();
+            });
+        });
+    });
+    describe('get (): string', function () {
+        var strings;
+        beforeEach(function () {
+            strings = src_1.default(['abc', 'def', 'ghi']);
+        });
+        describe('when called before any calls to next()', function () {
+            beforeEach(function () {
+                try {
+                    result.value = strings.get();
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('returns `undefined`', function () {
+                expect(result.value).toBe(undefined);
+                expect(result.error).toBeUndefined();
+            });
+        });
+        describe('when called after any calls to next()', function () {
+            beforeEach(function () {
+                try {
+                    strings.next();
+                    strings.next();
+                    result.value = strings.get();
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('returns the current value of the OrderedCharCombinations', function () {
+                expect(result.value).toBe('adh');
+                expect(result.error).toBeUndefined();
+            });
+        });
+    });
+    describe('has (): boolean', function () {
+        var strings;
+        beforeEach(function () {
+            strings = src_1.default(['abc', 'def', 'ghi']);
+        });
+        describe('when called before the last element', function () {
+            beforeEach(function () {
+                try {
+                    result.value = Array.from(strings).slice(0, -1)
+                        .every(function (string) { return strings.next() && strings.has(); });
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('returns `true`', function () {
+                expect(result.value).toBe(true);
+                expect(result.error).toBeUndefined();
+            });
+        });
+        describe('when called after iterating through all elements', function () {
+            beforeEach(function () {
+                try {
+                    Array.from(strings)
+                        .forEach(function (string) { return strings.next(); });
+                    result.value = strings.has();
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('returns the current value of the OrderedCharCombinations', function () {
+                expect(result.value).toBe(false);
                 expect(result.error).toBeUndefined();
             });
         });
@@ -135,40 +209,45 @@ var _a;
 
 },{"../src":2,"tslib":undefined}],2:[function(require,module,exports){
 "use strict";
-var tslib_1 = require("tslib");
 ;
 var OrderedChars = (function () {
     function OrderedChars(alphabet) {
         this.alphabet = alphabet;
         this.size = this.alphabet.length;
-        this.index = -1;
+        this._index = -1;
     }
     OrderedChars.prototype[Symbol.iterator] = function () {
         return new OrderedChars(this.alphabet);
     };
     OrderedChars.prototype.next = function () {
-        this.index++;
-        return this.has()
-            ? { done: false, value: this.get() }
-            : { done: true, value: undefined };
+        if (!this.has()) {
+            return { done: true, value: undefined };
+        }
+        this._index++;
+        return { done: false, value: this.get() };
     };
     OrderedChars.prototype.get = function () {
-        return this.alphabet[this.index];
+        return this.alphabet[this._index];
     };
     OrderedChars.prototype.has = function () {
-        return this.index < this.alphabet.length;
+        return this._index < this.alphabet.length - 1;
     };
+    Object.defineProperty(OrderedChars.prototype, "index", {
+        get: function () {
+            return this._index;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return OrderedChars;
 }());
-var OrderedStrings = (function (_super) {
-    tslib_1.__extends(OrderedStrings, _super);
+var OrderedStrings = (function () {
     function OrderedStrings(alphabets) {
-        var _this = _super.call(this, alphabets[0]) || this;
-        _this.alphabets = alphabets.slice();
-        _this.substring = OrderedStrings.getInstance(alphabets.slice(1));
-        _this.size = _this.alphabet.length * _this.substring.size;
-        _this.index = 0;
-        return _this;
+        this.chars = new OrderedChars(alphabets[0]);
+        this.chars.next();
+        this.alphabets = alphabets.slice();
+        this.substrings = OrderedStrings.getInstance(alphabets.slice(1));
+        this.size = this.alphabets[0].length * this.substrings.size;
     }
     OrderedStrings.getInstance = function (alphabets) {
         if (!isArrayOfStrings(alphabets)) {
@@ -180,25 +259,36 @@ var OrderedStrings = (function (_super) {
         return new OrderedStrings(this.alphabets);
     };
     OrderedStrings.prototype.next = function () {
-        var substring = this.substring.next();
+        var substring = this.substrings.next();
         if (!substring.done) {
             return { value: this.concat(substring.value), done: false };
         }
-        var char = _super.prototype.next.call(this);
+        var char = this.chars.next();
         if (char.done) {
             return char;
         }
-        this.substring = this.substring[Symbol.iterator]();
+        this.substrings = this.substrings[Symbol.iterator]();
         return this.next();
     };
+    OrderedStrings.prototype.has = function () {
+        return this.substrings.has() || this.chars.has();
+    };
+    Object.defineProperty(OrderedStrings.prototype, "index", {
+        get: function () {
+            return this.chars.index * this.substrings.size + this.substrings.index;
+        },
+        enumerable: true,
+        configurable: true
+    });
     OrderedStrings.prototype.get = function () {
-        return this.concat(this.substring.get());
+        var substring = this.substrings.get();
+        return substring && this.concat(substring);
     };
     OrderedStrings.prototype.concat = function (substring) {
-        return _super.prototype.get.call(this) + substring;
+        return this.chars.get() + substring;
     };
     return OrderedStrings;
-}(OrderedChars));
+}());
 var emptyIterator = [].keys();
 function isArrayOfStrings(val) {
     return Array.isArray(val) && val.every(isString);
@@ -210,4 +300,4 @@ var newOrderedStrings = OrderedStrings.getInstance;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = newOrderedStrings;
 
-},{"tslib":undefined}]},{},[1]);
+},{}]},{},[1]);

@@ -18,9 +18,11 @@ export interface OrderedCharCombinationsFactory {
 
 export interface OrderedCharCombinations extends Iterable<string>, Iterator<string> {
   [Symbol.iterator] (): OrderedCharCombinations
-  get (): string
+  next (): IteratorResult<string>
   has (): boolean
-  size: number
+  get (): string
+  readonly index: number
+  readonly size: number
 }
 
 class OrderedChars implements OrderedCharCombinations {
@@ -29,32 +31,37 @@ class OrderedChars implements OrderedCharCombinations {
   }
 
 	next (): IteratorResult<string> {
-  	this.index++
-    return this.has()
-    ? { done: false, value: this.get() }
-    : { done: true, value: undefined }
+    if (!this.has()) {
+      return { done: true, value: undefined }
+    }
+    this._index++
+    return { done: false, value: this.get() }
   }
 
   get (): string {
-  	return this.alphabet[this.index]
+  	return this.alphabet[this._index] // undefined if index out of range
   }
 
   has (): boolean {
-  	return this.index < this.alphabet.length
+  	return this._index < this.alphabet.length - 1
   }
 
-	protected constructor (alphabet: string) {
+  get index (): number {
+    return this._index
+  }
+
+	constructor (alphabet: string) {
     this.alphabet = alphabet
     this.size = this.alphabet.length
-    this.index = -1
+    this._index = -1
   }
 
-  public size: number
-  protected alphabet: string
-  protected index: number
+  public readonly size: number
+  private alphabet: string
+  private _index: number
 }
 
-class OrderedStrings extends OrderedChars implements OrderedCharCombinations {
+class OrderedStrings implements OrderedCharCombinations {
 	static getInstance (alphabets: string[]): OrderedCharCombinations {
     if (!isArrayOfStrings(alphabets)) { throw new TypeError('invalid argument') }
   	return alphabets.length > 1 ? new OrderedStrings(alphabets) : new OrderedChars(alphabets[0])
@@ -65,35 +72,45 @@ class OrderedStrings extends OrderedChars implements OrderedCharCombinations {
   }
 
 	next (): IteratorResult<string> {
-  	const substring = this.substring.next()
+  	const substring = this.substrings.next()
     if (!substring.done) {
       return { value: this.concat(substring.value), done: false }
     }
-    const char = super.next()
+    const char = this.chars.next()
     if (char.done) { return char }
-    this.substring = this.substring[Symbol.iterator]()
+    this.substrings = this.substrings[Symbol.iterator]()
     return this.next()
   }
 
+  has (): boolean {
+    return this.substrings.has() || this.chars.has()
+  }
+
+  get index (): number {
+    return this.chars.index * this.substrings.size + this.substrings.index
+  }
+
   get (): string {
-  	return this.concat(this.substring.get())
+    const substring = this.substrings.get()
+    return substring && this.concat(substring)
   }
 
 	private constructor (alphabets: string[]) {
-  	super(alphabets[0])
+  	this.chars = new OrderedChars(alphabets[0])
+    this.chars.next()
     this.alphabets = alphabets.slice()
-    this.substring = OrderedStrings.getInstance(alphabets.slice(1))
-    this.size = this.alphabet.length * this.substring.size
-    this.index = 0
+    this.substrings = OrderedStrings.getInstance(alphabets.slice(1))
+    this.size = this.alphabets[0].length * this.substrings.size
   }
 
   private concat (substring: string) {
-  	return super.get() + substring
+  	return this.chars.get() + substring
   }
 
   public size: number
   private alphabets: string[]
-  private substring: OrderedCharCombinations
+  private chars: OrderedChars
+  private substrings: OrderedCharCombinations
 }
 
 const emptyIterator = [ ].keys()
