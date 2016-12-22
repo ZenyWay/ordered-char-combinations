@@ -19,6 +19,7 @@ export interface OrderedCharCombinationsFactory {
 export interface OrderedCharCombinations extends Iterable<string>, Iterator<string> {
   [Symbol.iterator] (): OrderedCharCombinations
   next (): IteratorResult<string>
+  skip (steps: number): number
   has (): boolean
   get (): string
   readonly index: number
@@ -38,12 +39,21 @@ class OrderedChars implements OrderedCharCombinations {
     return { done: false, value: this.get() }
   }
 
+  skip (steps: number): number {
+    if (!(steps > 0)) { return 0 } // positive assertion excludes non-number types
+    if (steps === 1) { return this.next().done ? 0 : 1 } // quick win
+    const rest = this.size - this._index - 1
+    const skip = steps < rest ? steps : rest
+    this._index += skip
+    return skip
+  }
+
   get (): string {
   	return this.alphabet[this._index] // undefined if index out of range
   }
 
   has (): boolean {
-  	return this._index < this.alphabet.length - 1
+  	return this._index < this.size - 1
   }
 
   get index (): number {
@@ -74,12 +84,33 @@ class OrderedStrings implements OrderedCharCombinations {
 	next (): IteratorResult<string> {
   	const substring = this.substrings.next()
     if (!substring.done) {
+      if (this.chars.index < 0) { this.chars.next() }
       return { value: this.concat(substring.value), done: false }
     }
     const char = this.chars.next()
     if (char.done) { return char }
     this.substrings = this.substrings[Symbol.iterator]()
     return this.next()
+  }
+
+  skip (steps: number): number {
+    if (!(steps > 0)) { return 0 } // positive assertion excludes non-number types
+    if (steps >= this.size) { // client-code request out-of-range
+      return this.chars.skip(steps) * this.substrings.size
+      + this.substrings.skip(steps)
+    }
+    const init = +(this.chars.index < 0)
+    if (init) { this.next() } // initialize to proper state
+    const subskip = (steps - init) % this.substrings.size
+    const subrest = subskip - this.substrings.skip(subskip)
+    const skip = (steps - init - subskip) / this.substrings.size + +(!!subrest) // carry
+    const rest = skip - this.chars.skip(skip)
+    if (!rest && subrest) { // wrap and skip remaining substring steps
+      this.substrings = this.substrings[Symbol.iterator]()
+      this.substrings.skip(subrest)
+      return steps
+    }
+    return steps - rest * this.substrings.size - subrest
   }
 
   has (): boolean {
@@ -97,7 +128,6 @@ class OrderedStrings implements OrderedCharCombinations {
 
 	private constructor (alphabets: string[]) {
   	this.chars = new OrderedChars(alphabets[0])
-    this.chars.next()
     this.alphabets = alphabets.slice()
     this.substrings = OrderedStrings.getInstance(alphabets.slice(1))
     this.size = this.alphabets[0].length * this.substrings.size
@@ -116,7 +146,7 @@ class OrderedStrings implements OrderedCharCombinations {
 const emptyIterator = [ ].keys()
 
 function isArrayOfStrings (val: any): val is (string|String)[] {
-  return Array.isArray(val) && val.every(isString)
+  return Array.isArray(val) && val.length && val.every(isString)
 }
 
 function isString (val: any): val is string|String {
