@@ -2,7 +2,7 @@
   "name": "ordered-char-combinations",
   "version": "1.2.0",
   "description": "iterable over ordered character combinations from a list of alphabets",
-  "main": "dist",
+  "main": "dist/index",
   "scripts": {
     "predist": "mkdirp dist && rimraf dist/*",
     "dist": "tsc -p src --outDir dist",
