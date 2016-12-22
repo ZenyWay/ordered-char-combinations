@@ -122,7 +122,7 @@ describe('OderedCharCombinations', function () {
         beforeEach(function () {
             strings = src_1.default(['abc', 'def', 'ghi']);
         });
-        describe('when called with a numer of steps ' +
+        describe('when called with a number of steps ' +
             'within the remaining iteration range', function () {
             beforeEach(function () {
                 try {
