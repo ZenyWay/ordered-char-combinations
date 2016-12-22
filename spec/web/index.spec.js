@@ -117,6 +117,55 @@ describe('OderedCharCombinations', function () {
             });
         });
     });
+    describe('skip (steps: number): number', function () {
+        var strings;
+        beforeEach(function () {
+            strings = src_1.default(['abc', 'def', 'ghi']);
+        });
+        describe('when called with a numer of steps ' +
+            'within the remaining iteration range', function () {
+            beforeEach(function () {
+                try {
+                    result.value = [3, 1, 9, 12, 2].map(function (steps) {
+                        var skip = strings.skip(steps);
+                        return { skip: skip, value: strings.get() };
+                    });
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('forwards the iterator by the given number of iteration steps', function () {
+                expect(result.value).toEqual(['adi', 'aeg', 'beg', 'cfg', 'cfi']
+                    .map(function (value) { return jasmine.objectContaining({ value: value }); }));
+            });
+            it('returns the given number of steps', function () {
+                expect(result.value).toEqual([3, 1, 9, 12, 2]
+                    .map(function (steps) { return jasmine.objectContaining({ skip: steps }); }));
+                expect(result.error).toBeUndefined();
+            });
+        });
+        describe('when called with a number of steps ' +
+            'beyond the remaining iteration range', function () {
+            beforeEach(function () {
+                strings.next();
+                strings.next();
+                try {
+                    result.value = strings.skip(27);
+                }
+                catch (err) {
+                    result.error = err;
+                }
+            });
+            it('forwards the iterator to the end of its iteration range', function () {
+                expect(strings.has()).toBe(false);
+            });
+            it('returns the number of steps to the end of the iteration range', function () {
+                expect(result.value).toBe(25);
+                expect(result.error).toBeUndefined();
+            });
+        });
+    });
     describe('get (): string', function () {
         var strings;
         beforeEach(function () {
@@ -226,6 +275,18 @@ var OrderedChars = (function () {
         this._index++;
         return { done: false, value: this.get() };
     };
+    OrderedChars.prototype.skip = function (steps) {
+        if (!(steps > 0)) {
+            return 0;
+        }
+        if (steps === 1) {
+            return this.next().done ? 0 : 1;
+        }
+        var rest = this.size - this._index - 1;
+        var skip = steps < rest ? steps : rest;
+        this._index += skip;
+        return skip;
+    };
     OrderedChars.prototype.get = function () {
         return this.alphabet[this._index];
     };
@@ -271,6 +332,29 @@ var OrderedStrings = (function () {
         }
         this.substrings = this.substrings[Symbol.iterator]();
         return this.next();
+    };
+    OrderedStrings.prototype.skip = function (steps) {
+        if (!(steps > 0)) {
+            return 0;
+        }
+        if (steps >= this.size) {
+            return this.chars.skip(steps) * this.substrings.size
+                + this.substrings.skip(steps);
+        }
+        var init = +(this.chars.index < 0);
+        if (init) {
+            this.next();
+        }
+        var subskip = (steps - init) % this.substrings.size;
+        var subrest = subskip - this.substrings.skip(subskip);
+        var skip = (steps - init - subskip) / this.substrings.size + +(!!subrest);
+        var rest = skip - this.chars.skip(skip);
+        if (!rest && subrest) {
+            this.substrings = this.substrings[Symbol.iterator]();
+            this.substrings.skip(subrest);
+            return steps;
+        }
+        return steps - rest * this.substrings.size - subrest;
     };
     OrderedStrings.prototype.has = function () {
         return this.substrings.has() || this.chars.has();

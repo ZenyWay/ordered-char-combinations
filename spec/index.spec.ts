@@ -138,6 +138,54 @@ describe('OderedCharCombinations', () => {
     })
   })
 
+  describe('skip (steps: number): number', () => {
+    let strings: any
+    beforeEach(() => {
+      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
+    })
+    describe('when called with a number of steps ' +
+    'within the remaining iteration range', () => {
+      beforeEach(() => {
+        try {
+          result.value = [ 3, 1, 9, 12, 2 ].map(steps => {
+            const skip = strings.skip(steps)
+            return { skip: skip, value: strings.get() }
+          })
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('forwards the iterator by the given number of iteration steps', () => {
+        expect(result.value).toEqual([ 'adi', 'aeg', 'beg', 'cfg', 'cfi' ]
+          .map(value => jasmine.objectContaining({ value: value })))
+      })
+      it('returns the given number of steps', () => {
+        expect(result.value).toEqual([ 3, 1, 9, 12, 2 ]
+          .map(steps => jasmine.objectContaining({ skip: steps })))
+        expect(result.error).toBeUndefined()
+      })
+    })
+    describe('when called with a number of steps ' +
+    'beyond the remaining iteration range', () => {
+      beforeEach(() => {
+        strings.next()
+        strings.next()
+        try {
+          result.value = strings.skip(27)
+        } catch (err) {
+          result.error = err
+        }
+      })
+      it('forwards the iterator to the end of its iteration range', () => {
+        expect(strings.has()).toBe(false)
+      })
+      it('returns the number of steps to the end of the iteration range', () => {
+        expect(result.value).toBe(25)
+        expect(result.error).toBeUndefined()
+      })
+    })
+  })
+
   describe('get (): string', () => {
     let strings: any
     beforeEach(() => {
