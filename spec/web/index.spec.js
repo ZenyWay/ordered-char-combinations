@@ -230,7 +230,7 @@ var OrderedChars = (function () {
         return this.alphabet[this._index];
     };
     OrderedChars.prototype.has = function () {
-        return this._index < this.alphabet.length - 1;
+        return this._index < this.size - 1;
     };
     Object.defineProperty(OrderedChars.prototype, "index", {
         get: function () {
@@ -244,7 +244,6 @@ var OrderedChars = (function () {
 var OrderedStrings = (function () {
     function OrderedStrings(alphabets) {
         this.chars = new OrderedChars(alphabets[0]);
-        this.chars.next();
         this.alphabets = alphabets.slice();
         this.substrings = OrderedStrings.getInstance(alphabets.slice(1));
         this.size = this.alphabets[0].length * this.substrings.size;
@@ -261,6 +260,9 @@ var OrderedStrings = (function () {
     OrderedStrings.prototype.next = function () {
         var substring = this.substrings.next();
         if (!substring.done) {
+            if (this.chars.index < 0) {
+                this.chars.next();
+            }
             return { value: this.concat(substring.value), done: false };
         }
         var char = this.chars.next();
@@ -291,7 +293,7 @@ var OrderedStrings = (function () {
 }());
 var emptyIterator = [].keys();
 function isArrayOfStrings(val) {
-    return Array.isArray(val) && val.every(isString);
+    return Array.isArray(val) && val.length && val.every(isString);
 }
 function isString(val) {
     return typeof (val && val.valueOf()) === 'string';

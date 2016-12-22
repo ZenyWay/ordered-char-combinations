@@ -43,7 +43,7 @@ class OrderedChars implements OrderedCharCombinations {
   }
 
   has (): boolean {
-  	return this._index < this.alphabet.length - 1
+  	return this._index < this.size - 1
   }
 
   get index (): number {
@@ -74,6 +74,7 @@ class OrderedStrings implements OrderedCharCombinations {
 	next (): IteratorResult<string> {
   	const substring = this.substrings.next()
     if (!substring.done) {
+      if (this.chars.index < 0) { this.chars.next() }
       return { value: this.concat(substring.value), done: false }
     }
     const char = this.chars.next()
@@ -97,7 +98,6 @@ class OrderedStrings implements OrderedCharCombinations {
 
 	private constructor (alphabets: string[]) {
   	this.chars = new OrderedChars(alphabets[0])
-    this.chars.next()
     this.alphabets = alphabets.slice()
     this.substrings = OrderedStrings.getInstance(alphabets.slice(1))
     this.size = this.alphabets[0].length * this.substrings.size
@@ -116,7 +116,7 @@ class OrderedStrings implements OrderedCharCombinations {
 const emptyIterator = [ ].keys()
 
 function isArrayOfStrings (val: any): val is (string|String)[] {
-  return Array.isArray(val) && val.every(isString)
+  return Array.isArray(val) && val.length && val.every(isString)
 }
 
 function isString (val: any): val is string|String {
