@@ -49,10 +49,6 @@ function assertAlphabetStream (alphabet$: Stream<any>, error: string): Stream<st
   : alphabet$))
 }
 
-function reject (error: string) {
-  return
-}
-
 function isValidAlphabetStream (val: Stream<any>): Promise<boolean> {
   return val
   .reduce((assert, val) => assert && isValidAlphabet(val), true)

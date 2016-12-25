@@ -6001,9 +6001,6 @@ function assertAlphabetStream(alphabet$, error) {
         ? Promise.reject(new TypeError('invalid argument'))
         : alphabet$; }));
 }
-function reject(error) {
-    return;
-}
 function isValidAlphabetStream(val) {
     return val
         .reduce(function (assert, val) { return assert && isValidAlphabet(val); }, true);
