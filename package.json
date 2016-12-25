@@ -1,6 +1,6 @@
 {
   "name": "ordered-char-combinations",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "iterable over ordered character combinations from a list of alphabets",
   "main": "dist/index",
   "scripts": {
@@ -9,7 +9,7 @@
     "example": "npm run example:bundle && npm run example:serve",
     "example:serve": "http-server -c-1 -i -e html -o -p 6510 spec/example",
     "preexample:bundle": "rimraf spec/example/*.js",
-    "example:bundle": "browserify spec/example/index.ts -p [ tsify --project spec/example ] --exclude 'tslib' --exclude debug --exclude 'immutable' -t uglifyify -o spec/example/index.js",
+    "example:bundle": "browserify spec/example/index.ts -p [ tsify -p spec/example ] --exclude debug -t uglifyify -o spec/example/index.js",
     "prepublish": "npm run dist",
     "pretest": "mkdirp spec/reports && rimraf spec/reports/*",
     "test": "karma start spec/karma.conf.js --single-run",
@@ -20,7 +20,7 @@
     "test:ci": "karma start spec/karma-coverage.conf.js --single-run && remap-istanbul -i spec/reports/coverage/chrom*/coverage.json -o spec/reports/coverage/lcov.info -t lcovonly",
     "test:web:serve": "http-server -c-1 -o -p 6510 spec/web",
     "pretest:web": "rimraf spec/web/*.js",
-    "test:web": "browserify spec/*.spec.ts -p [ tsify --project spec ] --exclude 'tslib' -o spec/web/index.spec.js && npm run test:web:serve"
+    "test:web": "browserify spec/*.spec.ts -p [ tsify -p spec ] --exclude tslib -o spec/web/index.spec.js && npm run test:web:serve"
   },
   "repository": {
     "type": "git",
@@ -43,16 +43,16 @@
   },
   "homepage": "https://github.com/zenyway/ordered-char-combinations#readme",
   "dependencies": {
-    "@types/debug": "0.0.29",
-    "debug": "^2.4.5",
-    "tslib": "^1.2.0"
+    "most": "^1.1.1"
   },
   "devDependencies": {
+    "@types/debug": "0.0.29",
     "@types/jasmine": "^2.5.38",
     "browserify": "^13.1.1",
     "browserify-istanbul": "^2.0.0",
     "coveralls": "^2.11.15",
     "cpx": "^1.5.0",
+    "debug": "^2.5.1",
     "eslint": "^3.12.2",
     "http-server": "^0.9.0",
     "immutable": "^3.8.1",
@@ -69,9 +69,10 @@
     "karma-safari-launcher": "^1.0.0",
     "karma-spec-reporter": "0.0.26",
     "mkdirp": "^0.5.1",
-    "remap-istanbul": "^0.8.2",
+    "remap-istanbul": "^0.8.4",
     "rimraf": "^2.5.4",
     "tsify": "^2.0.7",
+    "tslib": "^1.4.0",
     "typescript": "^2.1.4",
     "uglifyify": "^3.0.4",
     "watchify": "^3.8.0"

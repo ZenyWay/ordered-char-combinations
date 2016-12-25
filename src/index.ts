@@ -12,146 +12,64 @@
  * Limitations under the License.
  */
 ;
-export interface OrderedCharCombinationsFactory {
-  (alphabets: string[]): OrderedCharCombinations
+import { Stream, from, fromPromise, throwError } from 'most'
+//import { Observable } from 'rxjs/Observable'
+
+export default combination$
+
+function combination$ (alphabet$: Stream<string>|Iterable<string>): Stream<string> {
+  const char$ = assertAlphabetStream(stream<string>(alphabet$), 'invalid argument')
+  const char$$ = char$.map(alphabet => stream<string>(alphabet))
+  const length = char$.constant(1).reduce(sum, 0)
+
+  return unwrap(length.then(length => char$$.skip(1)
+    .scan(combine, char$$.take(1).join())
+    .slice(length - 1, void 0) // incorrect type definition requires two arguments
+    .join()))
 }
 
-export interface OrderedCharCombinations extends Iterable<string>, Iterator<string> {
-  [Symbol.iterator] (): OrderedCharCombinations
-  next (): IteratorResult<string>
-  skip (steps: number): number
-  has (): boolean
-  get (): string
-  readonly index: number
-  readonly size: number
+function combine (combination$: Stream<string>, char$: Stream<string>): Stream<string> {
+  return combination$
+  .flatMap(combination => char$.map(char => combination + char))
 }
 
-class OrderedChars implements OrderedCharCombinations {
-	[Symbol.iterator] (): OrderedCharCombinations {
-	  return new OrderedChars(this.alphabet)
-  }
-
-	next (): IteratorResult<string> {
-    if (!this.has()) {
-      return { done: true, value: undefined }
-    }
-    this._index++
-    return { done: false, value: this.get() }
-  }
-
-  skip (steps: number): number {
-    if (!(steps > 0)) { return 0 } // positive assertion excludes non-number types
-    if (steps === 1) { return this.next().done ? 0 : 1 } // quick win
-    const rest = this.size - this._index - 1
-    const skip = steps < rest ? steps : rest
-    this._index += skip
-    return skip
-  }
-
-  get (): string {
-  	return this.alphabet[this._index] // undefined if index out of range
-  }
-
-  has (): boolean {
-  	return this._index < this.size - 1
-  }
-
-  get index (): number {
-    return this._index
-  }
-
-	constructor (alphabet: string) {
-    this.alphabet = alphabet
-    this.size = this.alphabet.length
-    this._index = -1
-  }
-
-  public readonly size: number
-  private alphabet: string
-  private _index: number
+function sum (a: number, b: number): number {
+  return a + b
 }
 
-class OrderedStrings implements OrderedCharCombinations {
-	static getInstance (alphabets: string[]): OrderedCharCombinations {
-    if (!isArrayOfStrings(alphabets)) { throw new TypeError('invalid argument') }
-  	return alphabets.length > 1 ? new OrderedStrings(alphabets) : new OrderedChars(alphabets[0])
-  }
-
-	[Symbol.iterator] (): OrderedCharCombinations {
-	  return new OrderedStrings(this.alphabets)
-  }
-
-	next (): IteratorResult<string> {
-  	const substring = this.substrings.next()
-    if (!substring.done) {
-      if (this.chars.index < 0) { this.chars.next() }
-      return { value: this.concat(substring.value), done: false }
-    }
-    const char = this.chars.next()
-    if (char.done) { return char }
-    this.substrings = this.substrings[Symbol.iterator]()
-    return this.next()
-  }
-
-  skip (steps: number): number {
-    if (!(steps > 0)) { return 0 } // positive assertion excludes non-number types
-    if (steps >= this.size) { // client-code request out-of-range
-      return this.chars.skip(steps) * this.substrings.size
-      + this.substrings.skip(steps)
-    }
-    const init = +(this.chars.index < 0)
-    if (init) { this.next() } // initialize to proper state
-    const subskip = (steps - init) % this.substrings.size
-    const subrest = subskip - this.substrings.skip(subskip)
-    const skip = (steps - init - subskip) / this.substrings.size + +(!!subrest) // carry
-    const rest = skip - this.chars.skip(skip)
-    if (!rest && subrest) { // wrap and skip remaining substring steps
-      this.substrings = this.substrings[Symbol.iterator]()
-      this.substrings.skip(subrest)
-      return steps
-    }
-    return steps - rest * this.substrings.size - subrest
-  }
-
-  has (): boolean {
-    return this.substrings.has() || this.chars.has()
-  }
-
-  get index (): number {
-    return this.chars.index * this.substrings.size + this.substrings.index
-  }
-
-  get (): string {
-    const substring = this.substrings.get()
-    return substring && this.concat(substring)
-  }
-
-	private constructor (alphabets: string[]) {
-  	this.chars = new OrderedChars(alphabets[0])
-    this.alphabets = alphabets.slice()
-    this.substrings = OrderedStrings.getInstance(alphabets.slice(1))
-    this.size = this.alphabets[0].length * this.substrings.size
-  }
-
-  private concat (substring: string) {
-  	return this.chars.get() + substring
-  }
-
-  public size: number
-  private alphabets: string[]
-  private chars: OrderedChars
-  private substrings: OrderedCharCombinations
+function unwrap <T> (promise: Promise<Stream<T>>): Stream<T> {
+  return fromPromise(promise).join()
 }
 
-const emptyIterator = [ ].keys()
+function assertAlphabetStream (alphabet$: Stream<any>, error: string): Stream<string> {
+  return unwrap(isValidAlphabetStream(alphabet$)
+  .catch(() => false)
+  .then(isValid => !isValid
+  ? Promise.reject<Stream<string>>(new TypeError('invalid argument'))
+  : alphabet$))
+}
 
-function isArrayOfStrings (val: any): val is (string|String)[] {
-  return Array.isArray(val) && val.length && val.every(isString)
+function reject (error: string) {
+  return
+}
+
+function isValidAlphabetStream (val: Stream<any>): Promise<boolean> {
+  return val
+  .reduce((assert, val) => assert && isValidAlphabet(val), true)
+}
+
+function isValidAlphabet (val: any): val is string|String {
+  return isString(val) && !!val.length
+}
+
+function stream <T>(val: Iterable<T>|Stream<T>): Stream<T> {
+  try {
+    return from<T>(val)
+  } catch (err) {
+    return throwError(err)
+  }
 }
 
 function isString (val: any): val is string|String {
   return typeof (val && val.valueOf()) === 'string'
 }
-
-const newOrderedStrings: OrderedCharCombinationsFactory = OrderedStrings.getInstance
-export default newOrderedStrings

@@ -12,12 +12,11 @@
  * Limitations under the License.
  */
 ;
-import newStrings from '../../src'
-import { Seq } from 'immutable'
+import combination$ from '../../src'
 import debug = require('debug')
 const log = debug('example')
 
-const strings = Seq(newStrings([ 'abc', 'ABC', '012' ]))
+const string$ = combination$([ 'abc', 'ABC', '012' ])
+const subset$ = string$.skip(15).take(5)
 
-const subset = strings.skip(15).take(5).toArray()
-log('subset:', subset) // ['bC0', 'bC1', 'bC2', 'cA0', 'cA1']
+subset$.forEach(log) // 'bC0', 'bC1', 'bC2', 'cA0', 'cA1'

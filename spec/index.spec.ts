@@ -12,7 +12,8 @@
  * Limitations under the License.
  */
 ;
-import newOrderedStrings from '../src'
+import combination$ from '../src'
+import * as most from 'most'
 import { __assign as assign } from 'tslib'
 
 interface TestResult {
@@ -22,44 +23,72 @@ interface TestResult {
 
 const result: TestResult = {}
 
-const ALPHANUM = '0123456789abcdefghijklmnopqrstuvwxyz'
+const ALPHABETS = [ 'abc', 'ABC', '012' ]
 
-const ORDERED_CHAR_COMBINATIONS = jasmine.objectContaining({
-  [Symbol.iterator]: jasmine.any(Function),
-  next: jasmine.any(Function),
-  get: jasmine.any(Function),
-  has: jasmine.any(Function),
-  index: jasmine.any(Number),
-  size: jasmine.any(Number)
-})
+const COMBINATIONS = [
+  'aA0', 'aA1', 'aA2', 'aB0', 'aB1', 'aB2', 'aC0', 'aC1', 'aC2',
+  'bA0', 'bA1', 'bA2', 'bB0', 'bB1', 'bB2', 'bC0', 'bC1', 'bC2',
+  'cA0', 'cA1', 'cA2', 'cB0', 'cB1', 'cB2', 'cC0', 'cC1', 'cC2'
+]
+
+const ALPHABETS_ITERABLE = <Iterable<string> & Iterator<string>>{
+  [Symbol.iterator] () {
+    const iterator = Object.create(this)
+    iterator.keys = ALPHABETS.keys()
+    return iterator
+  },
+  next () {
+    const next = this.keys.next()
+    return {
+      done: next.done,
+      value: next.done ? undefined : this.alphabets[next.value]
+    }
+  },
+  alphabets: ALPHABETS
+}
+
+function isString (val:any): val is String|string {
+  return typeof (val && val.valueOf()) === 'string'
+}
+
+function toArray <T>(stream: most.Stream<T>): Promise<T[]> {
+  return stream.reduce((arr: T[], val: T) => arr.push(val) && arr, [])
+}
 
 beforeEach (() => {
   delete result.value
   delete result.error
 })
 
-describe('newOrderedStrings(alphabets: string[]): OrderedCharCombinations', () => {
-  describe('when given an array of strings', () => {
-    beforeEach(() => {
-      try {
-        result.value = newOrderedStrings([ ALPHANUM ])
-      } catch (err) {
-        result.error = err
-      }
+describe('combination$ (alphabets: Iterable<string>|Stream<string>): Stream<string>', () => {
+  describe('when given an Iterable or Stream of strings', () => {
+    beforeEach((done) => {
+      const combination$$ = most.from([
+        ALPHABETS,
+        ALPHABETS_ITERABLE,
+        most.from<string>(ALPHABETS)
+      ])
+      .map(combination$)
+      .flatMap(result$ => most.fromPromise(toArray(result$)))
+
+      toArray(combination$$)
+      .then(arr => result.value = arr)
+      .catch(err => result.error = err)
+      .then(() => setTimeout(done))
     })
-    it('returns an OrderedCharCombinations instance', () => {
-      expect(result.value).toEqual(ORDERED_CHAR_COMBINATIONS)
+    it('returns a Stream<string> instance with the ordered combinations ' +
+    'of characters from each alphabet in the given sequence', () => {
+      expect(result.value).toEqual([ COMBINATIONS, COMBINATIONS, COMBINATIONS ])
       expect(result.error).toBeUndefined()
     })
   })
 
   describe('when not given any argument', () => {
-    beforeEach(() => {
-      try {
-        result.value = (<any>newOrderedStrings)()
-      } catch (err) {
-        result.error = err
-      }
+    beforeEach((done) => {
+      toArray((<any>combination$)())
+      .then((arr: any[]) => result.value = arr)
+      .catch((err: any) => result.error = err)
+      .then(() => setTimeout(done))
     })
     it('throws an "invalid argument" TypeError', () => {
       expect(result.value).toBeUndefined()
@@ -68,206 +97,25 @@ describe('newOrderedStrings(alphabets: string[]): OrderedCharCombinations', () =
     })
   })
 
-  describe('when given anything else than an array of strings', () => {
-    beforeEach(() => {
-      const types = [
-        null, undefined, true, 42, 'foo', () => {}, [ 42 ], { foo: 'foo' }
-      ]
-      assign(result, types.reduce((result: TestResult, arg: any) => {
-        try {
-          result.value.push((<any>newOrderedStrings)(arg))
-        } catch (err) {
-          result.error.push(err)
-        }
-        return result
-      }, { value: [], error: [] }))
+  describe('when given anything else than an Iterable or Stream of strings', () => {
+    beforeEach((done) => {
+      const combination$$ = most.from([
+        null, undefined, true, 42, /* 'foo', this is an Iterable<string> ! */
+        () => {}, [ 42, 'foo' ], { foo: 'foo' }
+      ].map(<any>combination$))
+
+      toArray(combination$$
+      .flatMap((val$: most.Stream<any>) => val$
+        .recoverWith((err: any) => most.of(err))))
+      .then(arr => result.error = arr)
+      .then(() => setTimeout(done))
     })
     it('throws an "invalid argument" TypeError', () => {
-      expect(result.value.length).toBe(0)
-      expect(result.error.length).not.toBe(0)
+      expect(result.error.length).toBe(7)
       result.error.forEach((err: any) => {
         expect(err).toEqual(jasmine.any(TypeError))
         expect(err.message).toBe('invalid argument')
       })
-    })
-  })
-})
-
-describe('OderedCharCombinations', () => {
-  describe('[Symbol.iterator](): OderedCharCombinations', () => {
-    let strings: any
-    beforeEach(() => {
-      try {
-        strings = newOrderedStrings([ 'abc', 'def' ])
-        result.value = strings[Symbol.iterator]()
-      } catch (err) {
-        result.error = err
-      }
-    })
-    it('returns a new OderedCharCombinations', () => {
-      expect(result.value).toEqual(ORDERED_CHAR_COMBINATIONS)
-      expect(result.value).not.toBe(strings)
-      expect(result.error).toBeUndefined()
-    })
-  })
-
-  describe('next(): IteratorResult<string>', () => {
-    describe('when called until and past the last element', () => {
-      let combinations: any
-      beforeEach(() => {
-        combinations = [
-          'adg', 'adh', 'adi', 'aeg', 'aeh', 'aei', 'afg', 'afh', 'afi',
-          'bdg', 'bdh', 'bdi', 'beg', 'beh', 'bei', 'bfg', 'bfh', 'bfi',
-          'cdg', 'cdh', 'cdi', 'ceg', 'ceh', 'cei', 'cfg', 'cfh', 'cfi',
-          undefined
-        ].map(value => ({ value: value, done: typeof value === 'undefined' }))
-        try {
-          const strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
-          result.value = combinations.map((val: any) => strings.next())
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('returns IteratorResult instances of the ordered string combinations ' +
-      'of all characters from all alphabet strings concatenated ' +
-      'from the first to the last alphabet string, ' +
-      'followed by a termination IteratorResult instance', () => {
-        expect(result.value).toEqual(combinations)
-        expect(result.error).toBeUndefined()
-      })
-    })
-  })
-
-  describe('skip (steps: number): number', () => {
-    let strings: any
-    beforeEach(() => {
-      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
-    })
-    describe('when called with a number of steps ' +
-    'within the remaining iteration range', () => {
-      beforeEach(() => {
-        try {
-          result.value = [ 3, 1, 9, 12, 2 ].map(steps => {
-            const skip = strings.skip(steps)
-            return { skip: skip, value: strings.get() }
-          })
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('forwards the iterator by the given number of iteration steps', () => {
-        expect(result.value).toEqual([ 'adi', 'aeg', 'beg', 'cfg', 'cfi' ]
-          .map(value => jasmine.objectContaining({ value: value })))
-      })
-      it('returns the given number of steps', () => {
-        expect(result.value).toEqual([ 3, 1, 9, 12, 2 ]
-          .map(steps => jasmine.objectContaining({ skip: steps })))
-        expect(result.error).toBeUndefined()
-      })
-    })
-    describe('when called with a number of steps ' +
-    'beyond the remaining iteration range', () => {
-      beforeEach(() => {
-        strings.next()
-        strings.next()
-        try {
-          result.value = strings.skip(27)
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('forwards the iterator to the end of its iteration range', () => {
-        expect(strings.has()).toBe(false)
-      })
-      it('returns the number of steps to the end of the iteration range', () => {
-        expect(result.value).toBe(25)
-        expect(result.error).toBeUndefined()
-      })
-    })
-  })
-
-  describe('get (): string', () => {
-    let strings: any
-    beforeEach(() => {
-      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
-    })
-    describe('when called before any calls to next()', () => {
-      beforeEach(() => {
-        try {
-          result.value = strings.get()
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('returns `undefined`', () => {
-        expect(result.value).toBe(undefined)
-        expect(result.error).toBeUndefined()
-      })
-    })
-    describe('when called after any calls to next()', () => {
-      beforeEach(() => {
-        try {
-          strings.next()
-          strings.next()
-          result.value = strings.get()
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('returns the current value of the OrderedCharCombinations',() => {
-        expect(result.value).toBe('adh')
-        expect(result.error).toBeUndefined()
-      })
-    })
-  })
-
-  describe('has (): boolean', () => {
-    let strings: any
-    beforeEach(() => {
-      strings = newOrderedStrings([ 'abc', 'def', 'ghi' ])
-    })
-    describe('when called before the last element', () => {
-      beforeEach(() => {
-        try {
-          result.value = Array.from(strings).slice(0, -1)
-          .every(string => strings.next() && strings.has())
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('returns `true`', () => {
-        expect(result.value).toBe(true)
-        expect(result.error).toBeUndefined()
-      })
-    })
-    describe('when called after iterating through all elements', () => {
-      beforeEach(() => {
-        try {
-          Array.from(strings)
-          .forEach(string => strings.next())
-          result.value = strings.has()
-        } catch (err) {
-          result.error = err
-        }
-      })
-      it('returns `false`',() => {
-        expect(result.value).toBe(false)
-        expect(result.error).toBeUndefined()
-      })
-    })
-  })
-
-  describe('size: number', () => {
-    beforeEach(() => {
-      try {
-        result.value = newOrderedStrings([ 'abc', 'def', 'ghi' ])
-      } catch (err) {
-        result.error = err
-      }
-    })
-    it('indicates the total number of combinations in the Iterable', () => {
-      expect(result.value.size).toBe(27)
-      expect(result.error).toBeUndefined()
     })
   })
 })

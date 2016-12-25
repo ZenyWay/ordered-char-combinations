@@ -6,8 +6,48 @@
 
 iterable over ordered character combinations from a list of alphabets.
 
+# <a name="notice"></a> breaking change notice
+in view of enhancing this module's features, starting with API 2.0,
+the original imperative O-O implementation is replaced
+with a more trivial _and_ more powerful functional equivalent,
+a slightly simplified version of which follows for illustration purposes:
+
+```ts
+import { Stream, from as stream } from 'most'
+
+export function combination$ (alphabet$: Iterable<string>|Stream<string>): Stream<string> {
+  const char$ = stream<string>(alphabet$)
+  const char$$ = char$.map(alphabet => stream<string>(alphabet))
+  const length = char$.constant(1).reduce(sum, 0)
+
+  return unwrap(length.then(length =>
+    char$$.skip(1)
+    .scan(combine, char$$.take(1).join())
+    .slice(length - 1)
+    .join()))
+}
+
+function combine (combination$: Stream<string>, char$: Stream<string>): Stream<string> {
+  return combination$
+  .flatMap(combination => char$.map(char => combination + char))
+}
+
+function sum (a: number, b: number): number {
+  return a + b
+}
+
+function unwrap <T> (promise: Promise<Stream<T>>): Stream<T> {
+  return fromPromise(promise).join()
+}
+```
+
+the above functional implementation is more powerful
+than the original imperative O-O implementation:
+* it takes streams, observables or any other iterables as input, not only arrays,
+* and it exposes the complete stream interface from `most`, not only `skip`.
+
 # <a name="example"></a> example
-a live version of this example can be viewed [here](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.2.1/spec/example/index.html)
+a live version of this example can be viewed [here](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v2.0.0/spec/example/index.html)
 in the browser console,
 or by cloning this repository and running the following commands from a terminal:
 ```bash
@@ -17,22 +57,22 @@ npm run example
 the files of this example are available [here](./spec/example).
 
 ```ts
-import newStrings from 'ordered-char-combinations'
-import { Seq } from 'immutable'
+import combination$ from 'ordered-char-combinations'
 import debug = require('debug')
 const log = debug('example')
 
-const strings = Seq(newStrings([ 'abc', 'ABC', '012' ]))
-const subset = strings.skip(15).take(5).toArray()
-log('subset:', subset) // ['bC0', 'bC1', 'bC2', 'cA0', 'cA1']
+const string$ = combination$([ 'abc', 'ABC', '012' ])
+const subset$ = string$.skip(15).take(5)
+
+subset$.forEach(log) // 'bC0', 'bC1', 'bC2', 'cA0', 'cA1'
 ```
 
-# <a name="api"></a> API v1.2 stable
+# <a name="api"></a> API v2.0 stable
 `ES5` and [`Typescript`](http://www.typescriptlang.org/) compatible.
-Coded in `Typescript 2`.
+coded in `Typescript 2`, transpiled to `ES5`.
 
 for a detailed specification of the API,
-run the [unit tests](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v1.2.1/spec/web/index.html)
+run the [unit tests](https://cdn.rawgit.com/ZenyWay/ordered-char-combinations/v2.0.0/spec/web/index.html)
 in your browser.
 
 # <a name="contributing"></a> CONTRIBUTING
